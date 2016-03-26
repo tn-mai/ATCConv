@@ -9,7 +9,15 @@
 #include <iostream>
 
 void PrintUsage() {
-  std::cout << "atcconv.exe [infile] [outfile]" << std::endl;
+  std::cout << "ATCConv ver.0.1" << std::endl;
+  std::cout << "Convert PNG(24/32bit) image to KTX(ATC/ETC1 compressed format) image." << std::endl;
+  std::cout << std::endl;
+  std::cout << "usage: atcconv.exe [infile] [outfile]" << std::endl;
+  std::cout << std::endl;
+  std::cout << "  infile : input PNG(24/32bit) file path." << std::endl;
+  std::cout << "  outfile: output KTX file path." << std::endl;
+  std::cout << "           if not passed this option, use the infile that has replaced" << std::endl;
+  std::cout << "           extention ot '.ktx'." << std::endl;
 }
 
 uint32_t GetBytePerPixel(uint32_t format) {
