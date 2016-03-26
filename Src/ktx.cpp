@@ -2,7 +2,9 @@
   @file ktx.cpp
 */
 #include "ktx.h"
+#include <fstream>
 #include <iostream>
+#include <string>
 
 namespace KTX {
 
@@ -11,24 +13,24 @@ static const uint8_t fileIdentifier[12] = {
   0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A
 };
 
-void initialize(Header* h, uint32_t w, uint32_t h, uint32_t depth, uint16_t format)
+void initialize(Header* ktx, uint32_t w, uint32_t h, uint32_t depth, uint16_t format)
 {
   for (int i = 0; i < sizeof(fileIdentifier); ++i) {
-    h.identifier[i] = fileIdentifier[i];
+    ktx->identifier[i] = fileIdentifier[i];
   }
-  h.endianness = Endian_Little;
-  h.glType = 0;
-  h.glTypeSize = 0;
-  h.glFormat = 0;
-  h.glInternalFormat = format;
-  h.glBaseInternalFormat = 0;
-  h.pixelWidth = w;
-  h.pixelHeight = h;
-  h.pixelDepth = depth;
-  h.numberOfArrayElements = 0;
-  h.numberOfFaces = 1;
-  h.numberOfMipmapLevels = 1;
-  h.bytesOfKeyValueData = 0;
+  ktx->endianness = Endian_Little;
+  ktx->glType = 0;
+  ktx->glTypeSize = 0;
+  ktx->glFormat = 0;
+  ktx->glInternalFormat = format;
+  ktx->glBaseInternalFormat = 0;
+  ktx->pixelWidth = w;
+  ktx->pixelHeight = h;
+  ktx->pixelDepth = depth;
+  ktx->numberOfArrayElements = 0;
+  ktx->numberOfFaces = 1;
+  ktx->numberOfMipmapLevels = 1;
+  ktx->bytesOfKeyValueData = 0;
 }
 
 /** Check the header is valid.
@@ -160,7 +162,7 @@ bool write_texture(const std::string& filename, const File& ktxfile)
   header.bytesOfKeyValueData = 0;
   uint32_t dataSize = 0;
   for (auto& e : ktxfile.data) {
-    dataSize += e.buf.size() + sizeof(uint32_t);
+    dataSize += static_cast<uint32_t>(e.buf.size() + sizeof(uint32_t));
   }
 
   std::vector<uint8_t> buffer;
@@ -188,20 +190,20 @@ bool write_texture(const std::string& filename, const File& ktxfile)
 
 /** Write cubemap texture file.
 */
-bool write_cubemap(const std::string& filename, const std::vector<KTXFile>& ktxfiles)
+bool write_cubemap(const std::string& filename, const std::vector<File>& ktxfiles)
 {
-  KTXHeader  header = ktxfiles[0].header;
+  Header  header = ktxfiles[0].header;
   header.numberOfFaces = 6;
   header.bytesOfKeyValueData = 0;
   uint32_t dataSizePerFace = 0;
   for (auto& e : ktxfiles[0].data) {
-    dataSizePerFace += e.buf.size() + sizeof(uint32_t);
+    dataSizePerFace += static_cast<uint32_t>(e.buf.size() + sizeof(uint32_t));
   }
 
   std::vector<uint8_t> buffer;
-  buffer.reserve(sizeof(KTXHeader) + dataSizePerFace * 6);
+  buffer.reserve(sizeof(Header) + dataSizePerFace * 6);
 
-  buffer.insert(buffer.end(), reinterpret_cast<uint8_t*>(&header), reinterpret_cast<uint8_t*>(&header) + sizeof(KTXHeader));
+  buffer.insert(buffer.end(), reinterpret_cast<uint8_t*>(&header), reinterpret_cast<uint8_t*>(&header) + sizeof(Header));
   
   const Endian endianness = get_endian(header);
   const int mipCount = get_value(&header.numberOfMipmapLevels, endianness);
