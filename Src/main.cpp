@@ -8,6 +8,8 @@
 #include <string>
 #include <iostream>
 
+/** Print the program usage.
+*/
 void PrintUsage() {
   std::cout << "ATCConv ver.0.1" << std::endl;
   std::cout << "Convert PNG(24/32bit) image to KTX(ATC/ETC1 compressed format) image." << std::endl;
@@ -20,6 +22,12 @@ void PrintUsage() {
   std::cout << "           extention ot '.ktx'." << std::endl;
 }
 
+/** Get bytes per pixel from the format.
+
+  @param format Q_FORMAT_???
+
+  @return byte per pixel.
+*/
 uint32_t GetBytePerPixel(uint32_t format) {
   switch (format) {
   case Q_FORMAT_RGB_8I: return 3;
@@ -28,6 +36,15 @@ uint32_t GetBytePerPixel(uint32_t format) {
   }
 }
 
+/** Create TQonvertImage structure.
+
+  @param data    the pointer to the raw image data.
+  @param w       the pixel width of the image.
+  @param h       the pixel height of the image.
+  @param foramt  Q_FORMAT_???
+
+  @return TQonvertImage object created with the parameter.
+*/
 TQonvertImage TQonvertImage_Create( void* data, uint32_t w, uint32_t h, uint32_t format = Q_FORMAT_RGBA_8I) {
   TQonvertImage n;
   n.nWidth = w;
@@ -40,6 +57,8 @@ TQonvertImage TQonvertImage_Create( void* data, uint32_t w, uint32_t h, uint32_t
   return n;
 }
 
+/** The entry point.
+*/
 int main(int argc, char** argv) {
   std::string infilename;
   std::string outfilename;
@@ -83,7 +102,7 @@ int main(int argc, char** argv) {
   TQonvertImage  dest = TQonvertImage_Create(nullptr, width, height, destFormat);
   std::vector<uint8_t> buf;
   buf.resize(width * height * 4, 0);
-  dest.nDataSize = buf.size();
+  dest.nDataSize = static_cast<unsigned int>(buf.size());
   dest.pData = &buf[0];
   {
     const int result = Qonvert(&src, &dest);
