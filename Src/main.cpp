@@ -14,12 +14,19 @@ void PrintUsage() {
   std::cout << "ATCConv ver.0.1" << std::endl;
   std::cout << "Convert PNG(24/32bit) image to KTX(ATC/ETC1 compressed format) image." << std::endl;
   std::cout << std::endl;
-  std::cout << "usage: atcconv.exe [infile] [outfile]" << std::endl;
+  std::cout << "usage: atcconv.exe [-f format] [infile] [outfile]" << std::endl;
   std::cout << std::endl;
-  std::cout << "  infile : input PNG(24/32bit) file path." << std::endl;
-  std::cout << "  outfile: output KTX file path." << std::endl;
-  std::cout << "           if not passed this option, use the infile that has replaced" << std::endl;
-  std::cout << "           extention ot '.ktx'." << std::endl;
+  std::cout << "  infile   : input PNG(24/32bit) file path." << std::endl;
+  std::cout << "  outfile  : output KTX file path." << std::endl;
+  std::cout << "             if not passed this option, use the infile that has" << std::endl;
+  std::cout << "             replaced extention ot '.ktx'." << std::endl;
+  std::cout << "  -f format: the output image format." << std::endl;
+  std::cout << "             atci: ATC with interpolated alpha." << std::endl;
+  std::cout << "             atce: ATC with explicit alpha." << std::endl;
+  std::cout << "             etc1: ETC1." << std::endl;
+  std::cout << std::endl;
+  std::cout << "If infile doesn't have the alpha in atci or atce, it is assumed to be 1.0." << std::endl;
+  std::cout << "If infile has the alpha in etc1, ignored." << std::endl;
 }
 
 /** Get bytes per pixel from the format.
