@@ -36,6 +36,21 @@ uint32_t GetBytePerPixel(uint32_t format) {
   }
 }
 
+/** Get the OpenGL format from Q_FORMAT_???.
+
+  @param  qformat  Q_FORMAT_???. It is the TextureConverter format type.
+
+  @return The corresponding OpenGL format of the qformat.
+*/
+uint32_t GetOpenGLTextureFormat(uint32_t qformat) {
+  switch (qformat) {
+  case Q_FORMAT_ETC1_RGB8: return KTX::Format_ETC1;
+  case Q_FORMAT_ATC_RGBA_EXPLICIT_ALPHA: return KTX::Format_ATC_E;
+  default:
+  case Q_FORMAT_ATC_RGBA_INTERPOLATED_ALPHA: return KTX::Format_ATC_I;
+  }
+}
+
 /** Create TQonvertImage structure.
 
   @param data    the pointer to the raw image data.
@@ -57,18 +72,50 @@ TQonvertImage TQonvertImage_Create( void* data, uint32_t w, uint32_t h, uint32_t
   return n;
 }
 
+struct ArgToFormat {
+  const char* argname;
+  uint32_t format;
+};
+static const ArgToFormat argToFormatList[] = {
+  { "atce", Q_FORMAT_ATC_RGBA_EXPLICIT_ALPHA },
+  { "atci", Q_FORMAT_ATC_RGBA_INTERPOLATED_ALPHA },
+  { "etc1", Q_FORMAT_ETC1_RGB8 },
+};
+static const uint32_t Q_FORMAT_UNKNOWN = 0xffffffffU;
+
 /** The entry point.
 */
 int main(int argc, char** argv) {
   std::string infilename;
   std::string outfilename;
+  uint32_t outputFormat = Q_FORMAT_UNKNOWN;
   for (int i = 1; i < argc; ++i) {
+    if (argv[i][0] == '-') {
+      if (argv[i][1] == 'f' || argv[i][1] == 'F' && (argc >= i + 1)) {
+        static const ArgToFormat* const end = argToFormatList + sizeof(argToFormatList) / sizeof(argToFormatList[0]);
+        for (const ArgToFormat* itr = argToFormatList; itr != end; ++itr) {
+          if (strcmp(itr->argname, argv[i + 1]) == 0) {
+            outputFormat = itr->format;
+            break;
+          }
+        }
+        if (outputFormat == Q_FORMAT_UNKNOWN) {
+          std::cout << "Error: '" << argv[i + 1] << "' is unknown format." << std::endl;
+          return 1;
+        }
+        ++i;
+      }
+      continue;
+    }
 	if (infilename.empty()) {
 	  infilename = argv[i];
 	} else if (outfilename.empty()) {
 	  outfilename = argv[i];
 	  break;
 	}
+  }
+  if (outputFormat == Q_FORMAT_UNKNOWN) {
+    outputFormat = Q_FORMAT_ATC_RGBA_INTERPOLATED_ALPHA;
   }
   if (infilename.empty()) {
 	PrintUsage();
@@ -96,26 +143,46 @@ int main(int argc, char** argv) {
   const uint32_t width = FreeImage_GetWidth(dib);
   const uint32_t height = FreeImage_GetHeight(dib);
   const uint32_t bitPerPixel = FreeImage_GetBPP(dib);
-  const uint32_t destFormat = bitPerPixel == 32 ? Q_FORMAT_ATC_RGBA_INTERPOLATED_ALPHA : Q_FORMAT_ETC1_RGB8;
 
+  TFormatFlags srcFlags = { 0 };
+  srcFlags.nMaskRed   = FreeImage_GetRedMask(dib);
+  srcFlags.nMaskGreen = FreeImage_GetGreenMask(dib);
+  srcFlags.nMaskBlue  = FreeImage_GetBlueMask(dib);
+  srcFlags.nMaskAlpha = 0xff000000U;
   TQonvertImage  src = TQonvertImage_Create(FreeImage_GetBits(dib), width, height);
-  TQonvertImage  dest = TQonvertImage_Create(nullptr, width, height, destFormat);
-  std::vector<uint8_t> buf;
-  buf.resize(width * height * 4, 0);
-  dest.nDataSize = static_cast<unsigned int>(buf.size());
-  dest.pData = &buf[0];
+  src.pFormatFlags = &srcFlags;
+
+  TFormatFlags destFlags = { 0 };
+  destFlags.nFlipY = TRUE;
+  TQonvertImage  dest = TQonvertImage_Create(nullptr, width, height, outputFormat);
+  dest.pFormatFlags = &destFlags;
   {
+    // At First, dest.pData is nullptr.
+    // Qonvert return the required buffer size in dest.nDataSize.
     const int result = Qonvert(&src, &dest);
     if (result != Q_SUCCESS) {
-	  std::cout << "Can't convert '" << infilename << "'." << std::endl;
-	  FreeImage_Unload(dib);
-	  return 2;
+      std::cout << "Can't convert '" << infilename << "'." << std::endl;
+      FreeImage_Unload(dib);
+      return 2;
+    }
+  }
+  // Allocate the destination buffer using the size information returnd from Qonvert.
+  std::vector<uint8_t> buf;
+  buf.resize(dest.nDataSize);
+  dest.pData = &buf[0];
+  {
+    // This time, Qonvert can really convert the image.
+    const int result = Qonvert(&src, &dest);
+    if (result != Q_SUCCESS) {
+      std::cout << "Can't convert '" << infilename << "'." << std::endl;
+      FreeImage_Unload(dib);
+      return 2;
     }
   }
   FreeImage_Unload(dib);
 
   KTX::Header ktxheader;
-  KTX::initialize(&ktxheader, width, height, bitPerPixel == 32 ? KTX::Format_ATC_I : KTX::Format_ETC1);
+  KTX::initialize(&ktxheader, width, height, GetOpenGLTextureFormat(outputFormat));
   FILE* fp;
   {
 	const errno_t result = fopen_s(&fp, outfilename.c_str(), "wb");
