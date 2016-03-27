@@ -63,7 +63,7 @@ struct File {
   std::vector<Data> data;
 };
 
-void initialize(Header* ktx, uint32_t w, uint32_t h, uint32_t depth, uint16_t format);
+void initialize(Header* ktx, uint32_t w, uint32_t h, uint16_t format);
 bool is_header(const Header& h);
 uint32_t get_value(const uint32_t* pBuf, Endian e);
 void set_value(uint32_t* pBuf, uint32_t value, Endian e);

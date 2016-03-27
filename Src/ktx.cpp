@@ -13,20 +13,21 @@ static const uint8_t fileIdentifier[12] = {
   0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A
 };
 
-void initialize(Header* ktx, uint32_t w, uint32_t h, uint32_t depth, uint16_t format)
+/// Initialize KTX header for the compressed format.
+void initialize(Header* ktx, uint32_t w, uint32_t h, uint16_t format)
 {
   for (int i = 0; i < sizeof(fileIdentifier); ++i) {
     ktx->identifier[i] = fileIdentifier[i];
   }
-  ktx->endianness = Endian_Little;
+  ktx->endianness = 0x04030201;
   ktx->glType = 0;
   ktx->glTypeSize = 0;
   ktx->glFormat = 0;
   ktx->glInternalFormat = format;
-  ktx->glBaseInternalFormat = 0;
+  ktx->glBaseInternalFormat = format;
   ktx->pixelWidth = w;
   ktx->pixelHeight = h;
-  ktx->pixelDepth = depth;
+  ktx->pixelDepth = 0;
   ktx->numberOfArrayElements = 0;
   ktx->numberOfFaces = 1;
   ktx->numberOfMipmapLevels = 1;

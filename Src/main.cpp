@@ -115,7 +115,7 @@ int main(int argc, char** argv) {
   FreeImage_Unload(dib);
 
   KTX::Header ktxheader;
-  KTX::initialize(&ktxheader, width, height, bitPerPixel, bitPerPixel == 32 ? KTX::Format_ATC_I : KTX::Format_ETC1);
+  KTX::initialize(&ktxheader, width, height, bitPerPixel == 32 ? KTX::Format_ATC_I : KTX::Format_ETC1);
   FILE* fp;
   {
 	const errno_t result = fopen_s(&fp, outfilename.c_str(), "wb");
