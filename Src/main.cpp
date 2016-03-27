@@ -121,9 +121,6 @@ int main(int argc, char** argv) {
 	  break;
 	}
   }
-  if (outputFormat == Q_FORMAT_UNKNOWN) {
-    outputFormat = Q_FORMAT_ATC_RGBA_INTERPOLATED_ALPHA;
-  }
   if (infilename.empty()) {
 	PrintUsage();
 	return 0;
@@ -149,7 +146,10 @@ int main(int argc, char** argv) {
 
   const uint32_t width = FreeImage_GetWidth(dib);
   const uint32_t height = FreeImage_GetHeight(dib);
-  const uint32_t bitPerPixel = FreeImage_GetBPP(dib);
+  if (outputFormat == Q_FORMAT_UNKNOWN) {
+    const uint32_t bitPerPixel = FreeImage_GetBPP(dib);
+    outputFormat = bitPerPixel == 24 ? Q_FORMAT_ETC1_RGB8 : Q_FORMAT_ATC_RGBA_INTERPOLATED_ALPHA;
+  }
 
   TFormatFlags srcFlags = { 0 };
   srcFlags.nMaskRed   = FreeImage_GetRedMask(dib);
