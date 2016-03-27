@@ -146,10 +146,26 @@ int main(int argc, char** argv) {
 	return 1;
   }
 
+  const uint32_t bitPerPixel = FreeImage_GetBPP(dib);
+  const FREE_IMAGE_COLOR_TYPE colorType = FreeImage_GetColorType(dib);
+  if ((bitPerPixel != 24 && bitPerPixel != 32) || (colorType != FIC_RGB && colorType != FIC_RGBALPHA)) {
+    FIBITMAP* dib2;
+    if (FreeImage_IsTransparent(dib)) {
+      dib2 = FreeImage_ConvertTo32Bits(dib);
+    } else {
+      dib2 = FreeImage_ConvertTo24Bits(dib);
+    }
+    FreeImage_Unload(dib);
+    if (!dib2) {
+      std::cout << "Can't convert '" << infilename << "'." << std::endl;
+      return 1;
+    }
+    dib = dib2;
+  }
+
   const uint32_t width = FreeImage_GetWidth(dib);
   const uint32_t height = FreeImage_GetHeight(dib);
   if (outputFormat == Q_FORMAT_UNKNOWN) {
-    const uint32_t bitPerPixel = FreeImage_GetBPP(dib);
     outputFormat = bitPerPixel == 24 ? Q_FORMAT_ETC1_RGB8 : Q_FORMAT_ATC_RGBA_INTERPOLATED_ALPHA;
   }
 
