@@ -11,7 +11,7 @@
 /** Print the program usage.
 */
 void PrintUsage() {
-  std::cout << "ATCConv ver.0.1" << std::endl;
+  std::cout << "ATCConv ver.0.2" << std::endl;
   std::cout << "Convert PNG(24/32bit) image to KTX(ATC/ETC1 compressed format) image." << std::endl;
   std::cout << std::endl;
   std::cout << "usage: atcconv.exe [-f format] [infile] [outfile]" << std::endl;
@@ -25,8 +25,10 @@ void PrintUsage() {
   std::cout << "             atce: ATC with explicit alpha." << std::endl;
   std::cout << "             etc1: ETC1." << std::endl;
   std::cout << std::endl;
-  std::cout << "If infile doesn't have the alpha in atci or atce, it is assumed to be 1.0." << std::endl;
-  std::cout << "If infile has the alpha in etc1, ignored." << std::endl;
+  std::cout << "If not passed -f option, the output format is selected by the BPP of the" << std::endl;
+  std::cout << "input image. 'etc1' will be selected in the 24bit image, otherwize 'atci'." << std::endl;
+  std::cout << "If infile doesn't have the alpha in 'atci' or 'atce', it is assumed to be 1.0." << std::endl;
+  std::cout << "If infile has the alpha in 'etc1', ignored." << std::endl;
 }
 
 /** Get bytes per pixel from the format.
