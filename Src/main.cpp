@@ -69,7 +69,7 @@ uint32_t GetOpenGLTextureFormat(uint32_t qformat) {
 
   @return TQonvertImage object created with the parameter.
 */
-TQonvertImage TQonvertImage_Create( void* data, uint32_t w, uint32_t h, uint32_t format = Q_FORMAT_RGBA_8I) {
+TQonvertImage TQonvertImage_Create( void* data, uint32_t w, uint32_t h, uint32_t format) {
   TQonvertImage n;
   n.nWidth = w;
   n.nHeight = h;
@@ -146,14 +146,16 @@ int main(int argc, char** argv) {
 	return 1;
   }
 
-  const uint32_t bitPerPixel = FreeImage_GetBPP(dib);
+  uint32_t bitPerPixel = FreeImage_GetBPP(dib);
   const FREE_IMAGE_COLOR_TYPE colorType = FreeImage_GetColorType(dib);
   if ((bitPerPixel != 24 && bitPerPixel != 32) || (colorType != FIC_RGB && colorType != FIC_RGBALPHA)) {
     FIBITMAP* dib2;
     if (FreeImage_IsTransparent(dib)) {
       dib2 = FreeImage_ConvertTo32Bits(dib);
+      bitPerPixel = 32;
     } else {
       dib2 = FreeImage_ConvertTo24Bits(dib);
+      bitPerPixel = 24;
     }
     FreeImage_Unload(dib);
     if (!dib2) {
@@ -173,8 +175,8 @@ int main(int argc, char** argv) {
   srcFlags.nMaskRed   = FreeImage_GetRedMask(dib);
   srcFlags.nMaskGreen = FreeImage_GetGreenMask(dib);
   srcFlags.nMaskBlue  = FreeImage_GetBlueMask(dib);
-  srcFlags.nMaskAlpha = 0xff000000U;
-  TQonvertImage  src = TQonvertImage_Create(FreeImage_GetBits(dib), width, height);
+  srcFlags.nMaskAlpha = bitPerPixel == 24 ? 0 : 0xff000000U;
+  TQonvertImage  src = TQonvertImage_Create(FreeImage_GetBits(dib), width, height, bitPerPixel == 24 ? Q_FORMAT_RGB_8I : Q_FORMAT_RGBA_8I);
   src.pFormatFlags = &srcFlags;
 
   TFormatFlags destFlags = { 0 };
