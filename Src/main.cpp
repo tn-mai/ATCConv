@@ -9,32 +9,41 @@
 #include <iostream>
 #include <algorithm>
 
+#define ATCCONV_VERSION 1.0
+#define ATCCONV_TO_STR_I(x) #x
+#define ATCCONV_TO_STR(x) ATCCONV_TO_STR_I(x)
+
 /** Print the program usage.
 */
 void PrintUsage() {
-  std::cout << "ATCConv ver.0.2" << std::endl;
-  std::cout << "Convert PNG(24/32bit) image to KTX(ATC/ETC1 compressed format) image." << std::endl;
-  std::cout << std::endl;
-  std::cout << "usage: atcconv.exe [-f format] [infile] [outfile]" << std::endl;
-  std::cout << std::endl;
-  std::cout << "  infile   : input PNG(24/32bit) file path." << std::endl;
-  std::cout << "  outfile  : output KTX file path." << std::endl;
-  std::cout << "             if not passed this option, use the infile that has" << std::endl;
-  std::cout << "             replaced extention ot '.ktx'." << std::endl;
-  std::cout << "  -f format: the output image format." << std::endl;
-  std::cout << "             atci: ATC with interpolated alpha." << std::endl;
-  std::cout << "             atce: ATC with explicit alpha." << std::endl;
-  std::cout << "             etc1: ETC1." << std::endl;
-  std::cout << "  -m count : the mipmap count." << std::endl;
-  std::cout << "             if count is less than 2, a result has single image(no mipmap)." << std::endl;
-  std::cout << "             if count is greater than 16, count is considered as 16." << std::endl;
-  std::cout << "  -v       : flip virtucal." << std::endl;
-  std::cout << "" << std::endl;
-  std::cout << std::endl;
-  std::cout << "If not passed -f option, the output format is selected by the BPP of the" << std::endl;
-  std::cout << "input image. 'etc1' will be selected in the 24bit image, otherwize 'atci'." << std::endl;
-  std::cout << "If infile doesn't have the alpha in 'atci' or 'atce', it is assumed to be 1.0." << std::endl;
-  std::cout << "If infile has the alpha in 'etc1', ignored." << std::endl;
+  std::cout <<
+	"ATCConv ver." ATCCONV_TO_STR(ATCCONV_VERSION) "\n"
+	"Convert PNG(24/32bit) image to KTX(ATC/ETC1 compressed format) image.\n"
+	"\n"
+	"usage: atcconv.exe [-f format] [-m count] [-v] [infile] [outfile]\n"
+	"\n"
+	"  infile   : input PNG(24/32bit) file path.\n"
+	"\n"
+	"  outfile  : output KTX file path.\n"
+	"             if not passed this option, use the infile that has\n"
+	"             replaced extention ot '.ktx'.\n"
+	"\n"
+	"  -f format: the output image format.\n"
+	"             atci: ATC with interpolated alpha.\n"
+	"             atce: ATC with explicit alpha.\n"
+	"             etc1: ETC1.\n"
+	"\n"
+	"  -m count : the mipmap count.\n"
+	"             if count is less than 2, a result has single image(no mipmap).\n"
+	"             if count is greater than 16, count is considered as 16.\n"
+	"\n"
+	"  -v       : flip virtucal.\n"
+	"\n"
+	"  If not passed -f option, the output format is selected by the BPP of the\n"
+	"  input image. 'etc1' will be selected in the 24bit image, otherwize 'atci'.\n"
+	"  If infile does not have the alpha in 'atci' or 'atce', it is assumed to\n"
+	"  be 1.0. If infile has the alpha in 'etc1', ignored.\n"
+	<< std::endl;
 }
 
 /** Get bytes per pixel from the format.
