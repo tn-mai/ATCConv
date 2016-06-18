@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string>
 #include <iostream>
+#include <algorithm>
 
 /** Print the program usage.
 */
@@ -24,6 +25,11 @@ void PrintUsage() {
   std::cout << "             atci: ATC with interpolated alpha." << std::endl;
   std::cout << "             atce: ATC with explicit alpha." << std::endl;
   std::cout << "             etc1: ETC1." << std::endl;
+  std::cout << "  -m count : the mipmap count." << std::endl;
+  std::cout << "             if count is less than 2, a result has single image(no mipmap)." << std::endl;
+  std::cout << "             if count is greater than 16, count is considered as 16." << std::endl;
+  std::cout << "  -v       : flip virtucal." << std::endl;
+  std::cout << "" << std::endl;
   std::cout << std::endl;
   std::cout << "If not passed -f option, the output format is selected by the BPP of the" << std::endl;
   std::cout << "input image. 'etc1' will be selected in the 24bit image, otherwize 'atci'." << std::endl;
@@ -98,9 +104,11 @@ int main(int argc, char** argv) {
   std::string infilename;
   std::string outfilename;
   uint32_t outputFormat = Q_FORMAT_UNKNOWN;
+  uint32_t maxLevel = 1;
+  bool flipY = false;
   for (int i = 1; i < argc; ++i) {
     if (argv[i][0] == '-') {
-      if (argv[i][1] == 'f' || argv[i][1] == 'F' && (argc >= i + 1)) {
+      if ((argv[i][1] == 'f' || argv[i][1] == 'F') && argv[i][2] == '\0' && (argc >= i + 1)) {
         static const ArgToFormat* const end = argToFormatList + sizeof(argToFormatList) / sizeof(argToFormatList[0]);
         for (const ArgToFormat* itr = argToFormatList; itr != end; ++itr) {
           if (strcmp(itr->argname, argv[i + 1]) == 0) {
@@ -113,7 +121,12 @@ int main(int argc, char** argv) {
           return 1;
         }
         ++i;
-      }
+      } else if ((argv[i][1] == 'm' || argv[i][1] == 'M') && argv[i][2] == '\0' && (argc >= i + 1)) {
+		maxLevel = std::max(1, std::min(16, std::atoi(argv[i + 1])));
+		++i;
+	  } else if ((argv[i][1] == 'v' || argv[i][1] == 'V') && argv[i][2] == '\0') {
+		flipY = true;
+	  }
       continue;
     }
 	if (infilename.empty()) {
@@ -165,8 +178,8 @@ int main(int argc, char** argv) {
     dib = dib2;
   }
 
-  const uint32_t width = FreeImage_GetWidth(dib);
-  const uint32_t height = FreeImage_GetHeight(dib);
+  uint32_t width = FreeImage_GetWidth(dib);
+  uint32_t height = FreeImage_GetHeight(dib);
   if (outputFormat == Q_FORMAT_UNKNOWN) {
     outputFormat = bitPerPixel == 24 ? Q_FORMAT_ETC1_RGB8 : Q_FORMAT_ATC_RGBA_INTERPOLATED_ALPHA;
   }
@@ -176,52 +189,63 @@ int main(int argc, char** argv) {
   srcFlags.nMaskGreen = FreeImage_GetGreenMask(dib);
   srcFlags.nMaskBlue  = FreeImage_GetBlueMask(dib);
   srcFlags.nMaskAlpha = bitPerPixel == 24 ? 0 : 0xff000000U;
-  TQonvertImage  src = TQonvertImage_Create(FreeImage_GetBits(dib), width, height, bitPerPixel == 24 ? Q_FORMAT_RGB_8I : Q_FORMAT_RGBA_8I);
-  src.pFormatFlags = &srcFlags;
 
   TFormatFlags destFlags = { 0 };
-  destFlags.nFlipY = TRUE;
-  TQonvertImage  dest = TQonvertImage_Create(nullptr, width, height, outputFormat);
-  dest.pFormatFlags = &destFlags;
-  {
-    // At First, dest.pData is nullptr.
-    // Qonvert return the required buffer size in dest.nDataSize.
-    const int result = Qonvert(&src, &dest);
-    if (result != Q_SUCCESS) {
-      std::cout << "Can't convert '" << infilename << "'." << std::endl;
-      FreeImage_Unload(dib);
-      return 2;
-    }
-  }
-  // Allocate the destination buffer using the size information returnd from Qonvert.
-  std::vector<uint8_t> buf;
-  buf.resize(dest.nDataSize);
-  dest.pData = &buf[0];
-  {
-    // This time, Qonvert can really convert the image.
-    const int result = Qonvert(&src, &dest);
-    if (result != Q_SUCCESS) {
-      std::cout << "Can't convert '" << infilename << "'." << std::endl;
-      FreeImage_Unload(dib);
-      return 2;
-    }
+  destFlags.nFlipY = !flipY; // NOTE: dib has a virtucal reversed image.
+
+  KTX::File ktx;
+  KTX::initialize(&ktx.header, width, height, GetOpenGLTextureFormat(outputFormat));
+  for (uint32_t level = 0; ;) {
+	TQonvertImage  src = TQonvertImage_Create(FreeImage_GetBits(dib), width, height, bitPerPixel == 24 ? Q_FORMAT_RGB_8I : Q_FORMAT_RGBA_8I);
+	src.pFormatFlags = &srcFlags;
+
+	TQonvertImage  dest = TQonvertImage_Create(nullptr, width, height, outputFormat);
+	dest.pFormatFlags = &destFlags;
+	{
+	  // At First, dest.pData is nullptr.
+	  // Qonvert return the required buffer size in dest.nDataSize.
+	  const int result = Qonvert(&src, &dest);
+	  if (result != Q_SUCCESS) {
+		std::cout << "Can't convert '" << infilename << "'." << std::endl;
+		FreeImage_Unload(dib);
+		return 2;
+	  }
+	}
+	// Allocate the destination buffer using the size information returnd from Qonvert.
+	std::vector<uint8_t> buf;
+	buf.resize(dest.nDataSize);
+	dest.pData = &buf[0];
+	{
+	  // This time, Qonvert can really convert the image.
+	  const int result = Qonvert(&src, &dest);
+	  if (result != Q_SUCCESS) {
+		std::cout << "Can't convert '" << infilename << "'." << std::endl;
+		FreeImage_Unload(dib);
+		return 2;
+	  }
+	}
+	ktx.data.push_back(KTX::File::Data());
+	ktx.data.back().imageSize = dest.nDataSize;
+	ktx.data.back().buf.swap(buf);
+	if ((++level >= maxLevel) || (width == 1 || height == 1)) {
+	  ktx.header.numberOfMipmapLevels = level;
+	  break;
+	}
+	width /= 2;
+	height /= 2;
+	FIBITMAP* dib2 = FreeImage_Rescale(dib, width, height);
+	FreeImage_Unload(dib);
+	if (!dib2) {
+	  std::cout << "Can't convert '" << infilename << "'." << std::endl;
+	  return 2;
+	}
+	dib = dib2;
   }
   FreeImage_Unload(dib);
 
-  KTX::Header ktxheader;
-  KTX::initialize(&ktxheader, width, height, GetOpenGLTextureFormat(outputFormat));
-  FILE* fp;
-  {
-	const errno_t result = fopen_s(&fp, outfilename.c_str(), "wb");
-	if (result != 0) {
-	  std::cout << "Can't open '" << outfilename << std::endl;
-	  return 3;
-	}
+  if (!KTX::write_texture(outfilename, ktx)) {
+	return 3;
   }
-  fwrite(&ktxheader, 1, sizeof(KTX::Header), fp);
-  fwrite(&dest.nDataSize, 1, 4, fp);
-  fwrite(dest.pData, 1, dest.nDataSize, fp);
-  fclose(fp);
 
 #ifdef FREE_IMAGE_STATIC_LIBRARY
   FreeImage_Deinitialise();

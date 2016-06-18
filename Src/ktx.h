@@ -54,6 +54,7 @@ enum Format {
 /** the KTX file.
 */
 struct File {
+  /// Image data for each mip level.
   struct Data {
     uint32_t imageSize;
     std::vector<uint8_t> buf;
