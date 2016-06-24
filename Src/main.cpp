@@ -236,12 +236,12 @@ int main(int argc, char** argv) {
 	ktx.data.push_back(KTX::File::Data());
 	ktx.data.back().imageSize = dest.nDataSize;
 	ktx.data.back().buf.swap(buf);
-	if ((++level >= maxLevel) || (width == 1 || height == 1)) {
+	if ((++level >= maxLevel) || (width == 1 && height == 1)) {
 	  ktx.header.numberOfMipmapLevels = level;
 	  break;
 	}
-	width /= 2;
-	height /= 2;
+	width = std::max(width / 2, 1U);
+	height = std::max(height / 2, 1U);
 	FIBITMAP* dib2 = FreeImage_Rescale(dib, width, height);
 	FreeImage_Unload(dib);
 	if (!dib2) {
